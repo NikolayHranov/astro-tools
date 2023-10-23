@@ -1,0 +1,1 @@
+print("prosto probvam kak stava")
