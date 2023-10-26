@@ -5,16 +5,14 @@ import os
 import numpy as np
 from astropy.io import fits
 import statistics as st
-
+def printtk(text1):
+        label = tk.Label(root, text=text1)
+        label.pack()
 def collect_directories():
-
+    global root    
     root = tk.Tk()
     root.geometry("500x500")
     root.title("photometry NP")
-
-    def printtk(text1):
-        label = tk.Label(root, text=text1)
-        label.pack()
 
     selected_light_directory = None
     selected_dark_directory = None
@@ -68,6 +66,7 @@ def collect_directories():
     button.pack()
 
     root.mainloop()
+    
 
     directories = []
     return directories
@@ -100,8 +99,36 @@ def creat_master_dark(darks):
                 values.append(masterDark3D[i, y, x])
                 masterDark[y, x] = st.median(values)
 
+    return masterDark
+
+
+def after_start():
+
+    lights = list_files(selected_light_directory)
+    darks = list_files(selected_dark_directory)
+    flats = list_files(selected_flat_directory)
+    darkflats = list_files(selected_darkflat_directory)
+
+    print("nfen")
+    #master_dark = creat_master_dark(darks)
+    #master_darkflat = creat_master_dark(darkflats)
+
+def eror():
+    printtk("eror")
 def main():
     collect_directories()
+    
+
+    if selected_dark_directory!=None and selected_darkflat_directory!=None and selected_end_directory!=None and selected_flat_directory!=None and selected_light_directory!=None:
+        command_start = after_start
+    else:
+        command_start = eror
+
+    button = tk.Button(root, text="start", command=command_start)
+    button.pack()
+    root.mainloop()
+    
+
 
 if __name__=="__main__":
     main()
