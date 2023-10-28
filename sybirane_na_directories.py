@@ -65,9 +65,6 @@ def collect_directories():
     button = tk.Button(root, text="Select end directory", command=select_end_directory)
     button.pack()
 
-    root.mainloop()
-    
-
     directories = []
     return directories
 
@@ -126,13 +123,13 @@ def main():
 
     button = tk.Button(root, text="start", command=command_start)
     button.pack()
-    root.mainloop()
+ 
     
 
 
 if __name__=="__main__":
     main()
     
-
+root.mainloop()
 
 
