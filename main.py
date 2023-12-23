@@ -46,23 +46,40 @@ class StackWin(tk.Toplevel):
         self.t = ttk.Label(self, text=APP_NAME, style="Title.TLabel")
         self.t.pack()
 
-        self.stack_button = ttk.Button(self, text="Stack images", width=20, command=lambda: self.stack)
+        self.stack_button = ttk.Button(self, text="Start stacking", width=20, command=lambda: self.stack())
         self.stack_button.pack()
 
     
     def stack(self):
         global main_path
         main_path = fd.askdirectory()
-        filters = []
-        paths = {"darks": "darks", "flats": "flats", "darkflats": "darkflats", "lights": "lights"}
-
+        filters = ["R", "B", "V"]
+        paths = {"darks": "DARKS", "flats": "FLATS", "darkflats": "DARKFLATS", "lights": "LIGHTS"}
+        print("Stacking...\n\n")
         for filter in filters:
-            darks = self.get(path=paths["darks"], filter=filter)
-            flats = self.get(path=paths["flats"], filter=filter)
-            darkflats = self.get(path=paths["darkflats"], filter=filter)
-            lights = self.get(path=paths["lights"], filter=filter)
+            darks = self.get(paths["darks"], filter)
+            flats = self.get(paths["flats"], filter)
+            darkflats = self.get(paths["darkflats"], filter)
+            lights = self.get(paths["lights"], filter)
+        
+            print(f'''
+                Stacking for filter {filter}:
+                -----------
+
+                Darks:
+                {darks}
+
+                Darkflats:
+                {darkflats}
+
+                Flats:
+                {flats}
+
+                Lights:
+                {lights}
+                ''')
     
-    def get(path, filter):
+    def get(self, path, filter):
         folder_path = f"{main_path}/images/{path}"
         file_pattern = f"*_{filter}_*_*s_*"
         files = glob.glob(os.path.join(folder_path, file_pattern))

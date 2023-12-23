@@ -1,3 +1,4 @@
+import tkinter as tk
 import glob
 import re
 import os
@@ -7,7 +8,7 @@ main_path = "C:/Users/Nikolay/Desktop/New folder"
 
 def distribute(path, filter):
     folder_path = f"{main_path}/images/{path}"
-    file_pattern = "*_*s_*"
+    file_pattern = f"*_{filter}_*_*s_*"
     files = glob.glob(os.path.join(folder_path, file_pattern))
     print(files)
 
@@ -28,3 +29,8 @@ def distribute(path, filter):
         file_distribution[value] = glob.glob(os.path.join(folder_path, pattern))
 
     return file_distribution
+
+
+if __name__ == "__main__":
+    a = distribute("darks", "R")
+    print(a)
