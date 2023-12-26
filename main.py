@@ -79,6 +79,35 @@ class StackWin(tk.Toplevel):
                 {lights}
                 ''')
     
+            mDarks = self.medianfr(darks)
+            mDarkflats = self.medianfr(darkflats)
+
+            mFlats = self.substractfr(flats, mDarkflats)
+            dLights = self.substractfr(lights, mDarks)
+
+            processed = self.dividefr(dLights, mFlats)
+
+            print(processed)
+
+
+
+    '''
+    Functions medianfr(), substractfr() and dividefr() needs to be added!!!
+    Functionality:
+    Either get the median frame, substract frames or devide frames
+    Every function should be executed for every frame from the given dictionary
+    and the operation should be complited separately for values with different keys
+    '''
+
+    def medianfr(self, fr):
+        return None
+
+    def substractfr(self, b, s):
+        return None
+
+    def dividefr(self, b, d):
+        return None
+    
     def get(self, path, filter):
         folder_path = f"{main_path}/images/{path}"
         file_pattern = f"*_{filter}_*_*s_*"
