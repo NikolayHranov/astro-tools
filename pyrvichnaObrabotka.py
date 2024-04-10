@@ -63,7 +63,7 @@ def makeFlat(flats, darkflats):
   masterFlat = masterFlat / np.median(masterFlat)
   return masterFlat
 
-def lights(lights, darks, darkflats, flats):
+def lights(lights, darks, darkflats, flats):  #everything have to be list
   dark = makeDark(darks)
   flat = makeFlat(flats, darkflats)
 
