@@ -1,26 +1,30 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.collections as mcl
 from astropy.table import Table
+from astropy.io.votable import parse
 import photutils.aperture as apr
 import photutils.detection as det
 from astropy.io import fits
 from astropy.stats import mad_std
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-from matplotlib.backend_tools import ToolBase
+# from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+# from matplotlib.backend_tools import ToolBase
 from matplotlib.widgets import TextBox
 
 featureNotAvailableMsg = "Feature not available at this veresion"
 
 
 class PhotometryAnalysis():
-    def __init__(self, img):
+    def __init__(self, img, standards):
+        self.deltamag = []
+        self.standards = standards
         self.picked = None
         self.fig, self.ax = plt.subplots()
         self.image, self.source = getSource(img)
-        self.ax.imshow(self.image, vmin = 115, vmax = 170)
-        self.ax.scatter(self.source["xcentroid"], self.source["ycentroid"], s=1, picker=True, pickradius=1,)
-        self.ax.colorbar()
+        self.mappable = self.ax.imshow(self.image, vmin = 115, vmax = 170)
+        self.stars = self.ax.scatter(self.source["xcentroid"], self.source["ycentroid"], color="m", s=2, alpha=0.2, picker=True, pickradius=1)
+        self.fig.colorbar(self.mappable)
 
         self.standartsButton = ()
 
@@ -28,15 +32,39 @@ class PhotometryAnalysis():
 
     def inputBox(self):
         tbox = TextBox(self.ax, "Standart ID: ")
+        print("...box defined...")
         std_id = int(tbox.on_submit(lambda text: text))
+        print(f"...leaving function with return {std_id}")
         return std_id
 
     def onPick(self, event):
-        if isinstance(event.artist, plt.PathCollection):
+        print("Something clicked...")
+
+        if isinstance(event.artist, mcl.PathCollection):
             ind = event.ind[0]
+            # self.stars[ind].set_color("red")
+            print("...star clicked...")
             x_coord, y_coord = self.ax.collections[0].get_offsets()[ind]
-            std_id = self.inputBox()
-    
+            print(f"...coords: {x_coord, y_coord}...")
+            selected_row = self.source[(self.source["xcentroid"] == x_coord) & (self.source["ycentroid"] == y_coord)]
+            print("...your row:")
+            print(selected_row)
+            print("...")
+            if event.mouseevent.button == 1:
+                mask = ~((self.source["xcentroid"] == x_coord) & (self.source["ycentroid"] == y_coord))
+                self.source = self.source[mask]
+                self.stars.remove()
+                self.stars = self.ax.scatter(self.source["xcentroid"], self.source["ycentroid"], color="m", s=2, alpha=0.2, picker=True, pickradius=1)
+                plt.draw()
+                print("...star removed!")
+            elif event.mouseevent.button == 3:
+                print("...prepering input...")
+                # std_id = self.inputBox()
+                std_id = int(input())
+                selected_row["stdmag"] = self.standards[self.standards["recno"] == str(std_id)]["Vmag"]
+                self.deltamag.append(self.standards[self.standards["recno"] == std_id]["Vmag"] - selected_row["mag"])
+                print(f"...deltamag: {self.deltamag}... star added!")
+                print(f"Median : {np.median(self.deltamag)}")
 
 
 def getSource(img):
@@ -70,4 +98,13 @@ def standartStars():
 
 
 if __name__ == "__main__":
-    phot = PhotometryAnalysis()
+    vot = parse("vizier_standards_ngc7762.vot")
+    votable = vot.get_first_table()
+    table = Table(votable.array)
+    print(table)
+    print("-----------------------------------")
+    phot = PhotometryAnalysis("images/AVG_STABILIZED_V.fits", table)
+
+    plt.show()
+    print("list:", phot.deltamag)
+    print("median:", np.median(phot.deltamag))
