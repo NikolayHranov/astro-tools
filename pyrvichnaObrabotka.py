@@ -63,15 +63,20 @@ def makeFlat(flats, darkflats):
   masterFlat = masterFlat / np.median(masterFlat)
   return masterFlat
 
-def lights(lights, darks, darkflats, flats):
+def lights(lights, darks, darkflats, flats):  #everything have to be list
   dark = makeDark(darks)
   flat = makeFlat(flats, darkflats)
 
   for light in  lights:
-    light = fits.open(light)
-    light = np.array(light[0].data)
+    light1 = light
+    light2 = fits.open(light)
+    light = np.array(light2[0].data)
     light = light - dark
     light = light / flat
+    hdu = fits.PrimaryHDU(light)
+    hdu.header = light2.header
+    hdu.writeto('output.fits')#write exact directory
+    
 
     
 
