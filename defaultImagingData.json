@@ -1,9 +1,0 @@
-{
-    "imageNamePattern": "*_{filter}_*_{value}s_*",
-    "folders": {
-        "flats": "flats",
-        "darks": "darks",
-        "darkflats": "darkflats",
-        "lights": "lights"
-    }
-}
