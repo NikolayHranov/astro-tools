@@ -26,26 +26,33 @@ class AstroImages():
         self.paths = paths
         self.metakw = metakw
 
-        self.darks = self.get(paths["darks"])
-        self.flats = self.get(paths["flats"])
-        self.darkflats = self.get(paths["darkflats"])
-        self.lights = self.get(paths["lights"])
+        self.darks = self.get(self.paths["darks"])
+        self.flats = self.get(self.paths["flats"])
+        self.darkflats = self.get(self.paths["darkflats"])
+        self.lights = self.get(self.paths["lights"])
     
     def stackall(self):
+        print("CREATING MASTERDARKS AND MASTERDARKFLATS")
         self.mDarks = self.mediandarkfr(self.darks)
         self.mDarkflats = self.mediandarkfr(self.darkflats)
+        print("MASTERDARKS AND MASTERDARKFLATS CREATED")
 
-        self.sFlats = self.subtractfr(self.flats, self.mDarkflats)
+        print("SUBSTRACTING MASTERDARKFLATS")
+        self.sFlats = self.substractfr(self.flats, self.mDarkflats)
+        print("MASTERDARKFLATS SUBSTRACTED")
+        print("CREATING MASTERFLATS")
         self.mFlats = self.medianflatfr(self.sFlats)
-        
-        self.dLights = self.substractfr(self.lights, self.mDarks)
-        self.processed = self.dividefr(self.dLights, self.mFlats)
+        print("MASTERFLATS CREATED")
+
+        print("CRETING PROCESSED")
+        self.processed = self.subdivlightfr(self.lights, self.mDarks, self.mFlats)
+        print("IMAGES STACKED")
     
     def get(self, path):
         folder_path = f"{self.main_path}/images/{path}"
         file_pattern = f"*.fits"
         files = glob.glob(os.path.join(folder_path, file_pattern))
-        print(files)
+        # print(files)
 
         # value_pattern = r"_(\d+)s_"
 
@@ -54,8 +61,8 @@ class AstroImages():
 
         for file in files:
             imgf = fits.open(file)
-            exposure = imgf.header[self.metakw["exposure"]]
-            filter = imgf.header[self.metakw["filter"]]
+            exposure = imgf[0].header[self.metakw["exposure"]]
+            filter = imgf[0].header[self.metakw["filter"]]
             try:
                 type(sorted_frames[filter])
             except:
@@ -63,9 +70,17 @@ class AstroImages():
             try:
                 type(sorted_frames[filter][exposure])
             except:
-                sorted_frames[filter][exposure] = []
-            sorted_frames[filter][exposure].append(imgf.data)
-                
+                if path == self.paths["lights"]:
+                    sorted_frames[filter][exposure] = {"data": [], "header": []}
+                else:
+                    sorted_frames[filter][exposure] = []
+            if path == self.paths["lights"]:
+                sorted_frames[filter][exposure]["data"].append(imgf[0].data)
+                sorted_frames[filter][exposure]["header"].append(imgf[0].header)
+            else:
+                sorted_frames[filter][exposure].append(imgf[0].data)
+            print(f"{file} loaded!")
+            
 
             # match_ = re.search(value_pattern, file)
             # if match_:
@@ -98,51 +113,70 @@ class AstroImages():
         for exposure, frames in exposures.items():
             data_stacked = np.stack(frames)
             processed[exposure] = [np.median(data_stacked, axis=0)]
+        return processed
 
     def medianflatfr(self, fr):
+        print("Creating masterflats")
         processed = {}
         for filter, exposures in fr.items():
+            print(f"Creating masterflat for {filter} filter")
+            print(exposures)
+            print(exposures.values())
             # processed[filter] = {}
-            frames_data = sum(exposures.value())
+            # frames_data = sum(exposures.values())
+            frames_data = [item for sublist in exposures.values() for item in sublist]
             # frames_data = [frame.data for frame in frames]
             data_stacked = np.stack(frames_data)
             processed[filter] = [np.median(data_stacked, axis=0)]
+            print(f"Masterflat for {filter} filter created")
         return processed
 
-    def subtractfr(self, b, s):
+    def substractfr(self, b, s):
+        print("Substracting")
+        print(b, s)
         processed = {}
         for filter, exposures in b.items():
             processed[filter] = {}
             for exposure, frames in exposures.items():
                 processed[filter][exposure] = []
                 for frame in frames:
+                    print(frame)
                     result = frame - s[exposure]
                     processed[filter][exposure].append(result)
         return processed
 
-    def dividefr(self, b, d):
+    def subdivlightfr(self, b, s, d):
+        print("Dividing")
+        print(b, d)
         processed = {}
         for filter, exposures in b.items():
             processed[filter] = {}
             for exposure, frames in exposures.items():
-                processed[filter][exposure] = []
-                for frame in frames:
-                    result = frame / d[filter]
-                    processed[filter][exposure].append(result)
+                processed[filter][exposure] = {"data": [], "header": []}
+                for frame in frames["data"]:
+                    result = (frame - s[exposure])/ d[filter]
+                    processed[filter][exposure]["data"].append(result)
+                print(f"frames[\"header\"] = {frames['header']}")
+                for frame in frames["header"]:
+                    print(f"Stupid frame: {type(frame)} = {frame}")
+                    header = frame
+                    header[self.metakw["imgtype"]] = "PROCESSED"
+                    processed[filter][exposure]["header"].append(header)
         return processed
     
-    def save(self, processed, path, imgtype):
+    def save(self, path=None):
+        print("SAVING FILES")
+        processed = self.processed
         for filter, exposures in processed.items():
             for exposure, frames in exposures.items():
-                i = 0
-                for frame in frames:
-                    i += 1
-                    header = {self.metakw["imgtype"]: imgtype, self.metakw["filter"]: filter, self.metakw["exposure"]: exposure}
-                    fits.writeto(f"{self.main_path}/images/{path}/{imgtype}_{filter}_{exposure}_.fits", frame, header=header)
+                for i in range(len(frames["data"])):
+                    imgtype = frames["header"][i][self.metakw["imgtype"]]
+                    if path == None:
+                        path = imgtype
+                    # header = {self.metakw["imgtype"]: imgtype, self.metakw["filter"]: filter, self.metakw["exposure"]: exposure}
+                    fits.writeto(f"{self.main_path}/images/{path}/{imgtype}_{filter}_{exposure}_{i}_.fits", frames["data"][i], header=frames["header"][i])
+                    print(f"File {frames['header'][i]} saved at {self.main_path}/images/{path}/{imgtype}_{filter}_{exposure}_{i}_.fits")
                 del i
+        print("ALL FILES SAVED SUCCESSFULLY")
 
 
-
-images = AstroImages(main_path=main_path)
-images.stackall()
-images.save(images.processed, path, "PROCESSED")
